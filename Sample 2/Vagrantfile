@@ -1,0 +1,24 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/xenial64"
+
+  config.vm.network "forwarded_port", guest: 8080, host: 9090
+  
+  config.vm.provision "shell", inline: <<-SHELL
+
+    echo "===> INSTALL JAVA 8"
+    apt-get update
+    apt-get -y install openjdk-8-jdk
+
+    echo "===> INSTALL GIT"
+    apt-get -y install git
+
+    if [ ! -d ./tools/jenkins ]; then
+      echo "===> DOWNLOAD JENKINS"
+      mkdir ./tools ./tools/jenkins
+      wget -P ./tools/jenkins http://mirrors.jenkins.io/war/latest/jenkins.war
+    fi
+
+    echo "===> START JENKINS"
+    java -jar ./tools/jenkins/jenkins.war
+  SHELL
+end
