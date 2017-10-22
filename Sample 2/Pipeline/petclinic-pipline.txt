@@ -1,0 +1,35 @@
+node {
+   def mvnHome
+   stage('Preparation') { // for display purposes
+      // Get some code from a GitHub repository
+      git 'https://github.com/spring-projects/spring-petclinic.git'
+      // Get the Maven tool.
+      // ** NOTE: This 'M3' Maven tool must be configured
+      // **       in the global configuration.           
+      mvnHome = tool 'M3'
+   }
+   stage('Build') {
+      // Run the maven build
+      if (isUnix()) {
+         sh "'${mvnHome}/bin/mvn' clean package"
+      } else {
+         bat(/"${mvnHome}\bin\mvn" clean package/)
+      }
+   }
+   stage('Results') {
+      junit '**/target/surefire-reports/TEST-*.xml'
+   }
+}
+node {
+    stage('Deploy') {
+        script {
+            withEnv(['JENKINS_NODE_COOKIE=do_not_kill']) {
+                sh 'pgrep -f \"java -jar /deploy-petclinic/spring-petclinic.jar\" | sudo xargs kill &'
+                sh 'if [ ! -d /deploy-petclinic ]; then sudo mkdir /deploy-petclinic; fi'
+                sh 'sudo cp target/*.jar /deploy-petclinic/spring-petclinic.jar'
+                sh 'nohup nice java -jar /deploy-petclinic/spring-petclinic.jar &'
+                sh 'while ! httping -qc1 http://localhost:8080 ; do sleep 1 ; done'
+            }
+        }
+   }
+}
