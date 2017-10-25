@@ -30,9 +30,19 @@ Vagrant.configure("2") do |config|
       mv ./target/spring-petclinic-1.5.1.jar ../bin
     fi
 
-    cd ../bin/
-
-    echo "===> RUN PETCLINIC APPLICATION"
-    nohup java -jar spring-petclinic-1.5.1.jar &
+    cd /etc/systemd/system
+    
+    echo -e "[Unit]\n\
+    Description = petclinic service\n\
+    After = network.target\n\
+    [Service]\n\
+    ExecStart = /usr/bin/java -jar /home/ubuntu/application/spring-petclinic/bin/spring-petclinic-1.5.1.jar\n\
+    [Install]\n\
+    WantedBy = multi-user.target" > petclinic.service
+    
+    
+    systemctl daemon-reload
+    systemctl enable petclinic.service
+    systemctl start petclinic.service
   SHELL
 end
