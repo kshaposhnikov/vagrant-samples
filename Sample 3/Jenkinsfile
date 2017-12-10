@@ -1,0 +1,40 @@
+node {
+   def mvnHome
+   stage('Preparation') { // for display purposes
+       // Get some code from a GitHub repository
+       git 'https://github.com/kshaposhnikov/spring-petclinic.git'
+       // Get the Maven tool.
+       // ** NOTE: This 'M3' Maven tool must be configured
+       // **       in the global configuration.           
+       mvnHome = tool 'M3'
+   }
+   stage('Build') {
+       // Run the maven build
+       if (isUnix()) {
+          sh "'${mvnHome}/bin/mvn' clean package"
+       } else {
+          bat(/"${mvnHome}\bin\mvn" clean package/)
+       }
+   }
+   stage('Test Results') {
+       junit '**/target/surefire-reports/TEST-*.xml'
+   }
+   stage('Image') {
+       sh "mv target/spring-petclinic-1.5.1.jar target/spring-petclinic.jar"
+       docker.withTool("docker") {
+             docker.withRegistry("https://registry.hub.docker.com", "docker-registry") {
+                 def image = docker.build "kshaposhnikov/petclinic-test:1"
+                 image.push()
+             }
+       }
+   }
+   stage('Deploy') {
+       openshift.withCluster("minishift") {
+           openshift.doAs("minishift-credential") {
+               openshift.withProject("petclinic-deploy") {
+                    echo "Hello from project ${openshift.project()} in cluster ${openshift.cluster()}"
+                }
+           }
+       }
+   }
+}
