@@ -1,0 +1,46 @@
+node {
+  def mvnHome
+  def image
+  stage('Preparation') { // for display purposes
+      git 'https://github.com/kshaposhnikov/spring-petclinic.git'         
+      mvnHome = tool 'M3'
+  }
+  stage('Build') {
+      // Run the maven build
+      if (isUnix()) {
+         sh "'${mvnHome}/bin/mvn' clean package -DskipTests"
+      } else {
+         bat(/"${mvnHome}\bin\mvn" clean package/)
+      }
+  }
+//  stage('Test Results') {
+//      junit '**/target/surefire-reports/TEST-*.xml'
+//  }
+  stage('Image') {
+      sh "mv target/spring-petclinic-1.5.1.jar target/spring-petclinic.jar"
+      docker.withTool("docker") {
+        image = docker.build "kshaposhnikov/petclinic-test:1"
+      }
+  }
+  stage('Deploy Container') {
+      docker.withTool("docker") {
+          def executableContainers = sh(returnStdout: true, script: 'docker ps --format \"{{.ID}} {{.Names}}\"')
+          print "Were found following executable containers ${executableContainers}"
+          for (containerInfo in executableContainers.split("\n")) {
+            print containerInfo
+              def containerId = containerInfo.split(" ")[0]
+              def imageName = containerInfo.split(" ")[1]
+              
+              print "Container Id = ${containerId}"
+              print "Image Name = ${imageName}"
+              
+              if (imageName.contains("petclinic-deploy")) {
+                  sh "docker stop ${containerId}"
+                  break
+              }
+          }
+          image.run("-p 8081:8080 --name petclinic-deploy-${env.BUILD_NUMBER}")
+      }
+          
+  }
+}

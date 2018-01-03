@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<org.jenkinsci.plugins.pipeline.modeldefinition.config.GlobalConfig plugin="pipeline-model-definition@1.2.5">
+  <dockerLabel>docker</dockerLabel>
+  <registry plugin="docker-commons@1.10">
+    <url>https://registry.hub.docker.com</url>
+    <credentialsId>docker-registry</credentialsId>
+  </registry>
+</org.jenkinsci.plugins.pipeline.modeldefinition.config.GlobalConfig>j
